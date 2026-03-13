@@ -1,0 +1,17 @@
+{
+  "name": "fitjourney",
+  "version": "1.0.0",
+  "description": "GLP-1 투약자를 위한 통합 건강 관리 웹앱 — 투약·체중·운동·식사를 한곳에서 기록하고 시각적으로 추적",
+  "scripts": {
+    "test": "jest --coverage",
+    "test:ci": "jest --coverage --ci --reporters=default --reporters=jest-junit"
+  },
+  "keywords": ["health", "glp-1", "diet", "tracker", "localStorage"],
+  "author": "FitJourney",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "jest-junit": "^16.0.0"
+  }
+}

@@ -1,0 +1,11 @@
+/** @type {import('jest').Config} */
+module.exports = {
+  // jsdom 환경: localStorage 등 브라우저 API 제공
+  testEnvironment: 'jsdom',
+  testMatch: ['**/tests/**/*.test.js'],
+  coverageDirectory: 'coverage',
+  collectCoverageFrom: [
+    'js/storage.js',
+  ],
+  coverageReporters: ['text', 'lcov', 'html'],
+};

@@ -1,0 +1,108 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  # ── 단위 테스트 ──────────────────────────
+  test:
+    name: 단위 테스트 (Jest)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 의존성 설치
+        run: npm ci
+
+      - name: 단위 테스트 실행 (커버리지 포함)
+        run: npm run test:ci
+
+      - name: 테스트 커버리지 업로드
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+
+  # ── HTML 유효성 검사 ──────────────────────
+  validate:
+    name: HTML 유효성 검사
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: html-validate 설치
+        run: npm install -g html-validate
+
+      - name: HTML 구조 검사
+        run: |
+          # index.html 기본 구조 검사 (script/link 태그 누락 여부)
+          echo "=== index.html 파일 크기 및 기본 검사 ==="
+          wc -l index.html
+          grep -q "storage.js"  index.html && echo "✅ storage.js 로드 확인" || echo "❌ storage.js 누락"
+          grep -q "app.js"      index.html && echo "✅ app.js 로드 확인"     || echo "❌ app.js 누락"
+          grep -q "style.css"   index.html && echo "✅ style.css 로드 확인"  || echo "❌ style.css 누락"
+          grep -q "chart.js"    index.html && echo "✅ Chart.js CDN 확인"    || echo "❌ Chart.js 누락"
+          echo "=== JS 로드 순서 검증 ==="
+          python3 -c "
+          with open('index.html') as f:
+              content = f.read()
+          scripts = ['storage.js', 'charts.js', 'mounjaro.js', 'body.js', 'exercise.js', 'diet.js', 'dashboard.js', 'app.js']
+          positions = [(s, content.find(s)) for s in scripts]
+          for name, pos in positions:
+              status = '✅' if pos != -1 else '❌'
+              print(f'{status} {name}: position {pos}')
+          # 순서 검증
+          positions_valid = [p for _, p in positions if p != -1]
+          is_sorted = positions_valid == sorted(positions_valid)
+          print(f'스크립트 로드 순서 올바름: {is_sorted}')
+          assert is_sorted, 'JS 로드 순서가 올바르지 않습니다!'
+          "
+
+  # ── GitHub Pages 배포 ──────────────────────
+  deploy:
+    name: GitHub Pages 배포
+    needs: [test, validate]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: 배포용 정적 파일 준비
+        run: |
+          mkdir -p _site
+          cp index.html _site/
+          cp -r css _site/
+          cp -r js  _site/
+          echo "=== 배포 파일 목록 ==="
+          find _site -type f
+
+      - name: GitHub Pages 배포
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_site
+          commit_message: "deploy: ${{ github.event.head_commit.message }}"
