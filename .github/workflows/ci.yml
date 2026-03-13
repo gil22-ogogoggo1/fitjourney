@@ -55,15 +55,15 @@ jobs:
       - name: HTML 구조 검사
         run: |
           # index.html 기본 구조 검사 (script/link 태그 누락 여부)
-          echo "=== index.html 파일 크기 및 기본 검사 ==="
-          wc -l index.html
-          grep -q "storage.js"  index.html && echo "✅ storage.js 로드 확인" || echo "❌ storage.js 누락"
-          grep -q "app.js"      index.html && echo "✅ app.js 로드 확인"     || echo "❌ app.js 누락"
-          grep -q "style.css"   index.html && echo "✅ style.css 로드 확인"  || echo "❌ style.css 누락"
-          grep -q "chart.js"    index.html && echo "✅ Chart.js CDN 확인"    || echo "❌ Chart.js 누락"
+          echo "=== fitjourney.html 파일 크기 및 기본 검사 ==="
+          wc -l fitjourney.html
+          grep -q "storage.js"  fitjourney.html && echo "✅ storage.js 로드 확인" || echo "❌ storage.js 누락"
+          grep -q "app.js"      fitjourney.html && echo "✅ app.js 로드 확인"     || echo "❌ app.js 누락"
+          grep -q "style.css"   fitjourney.html && echo "✅ style.css 로드 확인"  || echo "❌ style.css 누락"
+          grep -q "chart.js"    fitjourney.html && echo "✅ Chart.js CDN 확인"    || echo "❌ Chart.js 누락"
           echo "=== JS 로드 순서 검증 ==="
           python3 -c "
-          with open('index.html') as f:
+          with open('fitjourney.html') as f:
               content = f.read()
           scripts = ['storage.js', 'charts.js', 'mounjaro.js', 'body.js', 'exercise.js', 'diet.js', 'dashboard.js', 'app.js']
           positions = [(s, content.find(s)) for s in scripts]
@@ -94,6 +94,7 @@ jobs:
       - name: 배포용 정적 파일 준비
         run: |
           mkdir -p _site
+          cp fitjourney.html _site/
           cp index.html _site/
           cp -r css _site/
           cp -r js  _site/

@@ -99,10 +99,12 @@ fitjourney/
 ```bash
 git clone https://github.com/gil22-ogogogogo1/hellowrodl.git
 cd hellowrodl
-# index.html을 브라우저에서 직접 열기
-open index.html   # macOS
-start index.html  # Windows
+# fitjourney.html을 브라우저에서 직접 열기
+open fitjourney.html   # macOS
+start fitjourney.html  # Windows
 ```
+
+> `index.html`은 `fitjourney.html`로 자동 리다이렉트됩니다.
 
 ### 테스트 실행
 ```bash
