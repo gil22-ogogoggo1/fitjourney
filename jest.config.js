@@ -6,6 +6,8 @@ module.exports = {
   coverageDirectory: 'coverage',
   collectCoverageFrom: [
     'js/storage.js',
+    'js/users.js',
+    'js/settings.js',
   ],
   coverageReporters: ['text', 'lcov', 'html'],
 };

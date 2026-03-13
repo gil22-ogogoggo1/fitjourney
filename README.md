@@ -1,5 +1,7 @@
 # 핏저니 (FitJourney)
 
+[![CI/CD](https://github.com/gil22-ogogogogo1/fitjourney/actions/workflows/ci.yml/badge.svg)](https://github.com/gil22-ogogogogo1/fitjourney/actions/workflows/ci.yml)
+
 > **"투약과 함께하는 건강한 변화"**
 > GLP-1 투약자가 투약·체중·운동·식사를 한곳에서 기록하고 시각적으로 추적하는 개인 건강 관리 웹앱
 
@@ -85,6 +87,8 @@ js/
   app.js                    ← SPA 라우팅, 상단 탭 네비, 사용자 모달, 공통 유틸
 tests/
   storage.test.js           ← Storage 단위 테스트 35개 (Jest)
+  users.test.js             ← Users 다중 사용자 테스트 18개 (Jest)
+  settings.test.js          ← Goals / AppSettings / Milestones 테스트 20개 (Jest)
 docs/
   PRD.md                    ← 제품 요구사항 정의서
   sprint/
