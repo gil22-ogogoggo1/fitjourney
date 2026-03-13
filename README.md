@@ -5,7 +5,7 @@
 > **"투약과 함께하는 건강한 변화"**
 > GLP-1 투약자가 투약·체중·운동·식사를 한곳에서 기록하고 시각적으로 추적하는 개인 건강 관리 웹앱
 
-🌐 **[라이브 데모](https://gil22-ogogogogo1.github.io/fitjourney/)** | 📋 **[PRD](docs/PRD.md)**
+🌐 **[라이브 데모](https://gil22-ogogogogo1.github.io/fitjourney/)** | 📋 **[PRD](docs/PRD.md)** | 🏗️ **[아키텍처](docs/ARCHITECTURE.md)**
 
 ---
 

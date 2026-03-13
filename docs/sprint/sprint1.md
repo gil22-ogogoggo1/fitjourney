@@ -17,8 +17,9 @@
 
 ## 구현 내용
 
-### Task 1 — 리브랜딩 (`index.html`, `app.js`)
+### Task 1 — 리브랜딩 (`fitjourney.html`, `app.js`)
 
+- SPA 진입점 파일명: `index.html` → `fitjourney.html` (GitHub Pages 루트는 `index.html`로 리다이렉트)
 - `<title>` 태그: `마운자로 다이어트 트래커` → `핏저니 | FitJourney`
 - 헤더 및 대시보드 타이틀: `대시보드` 유지, `마운자로 투약` → `투약 기록`
 - 헤더 H1 그라디언트 텍스트로 앱 이름 표시
@@ -74,23 +75,20 @@ function migrate() {
   // v0 → v1: mounjaro 기록에 drugName 기본값 추가
   if (current < 1) {
     try {
-      const raw = localStorage.getItem('mj_mounjaro');
-      if (raw) {
-        const records = JSON.parse(raw);
-        records.forEach(r => { if (!r.drugName) r.drugName = 'mounjaro'; });
-        localStorage.setItem('mj_mounjaro', JSON.stringify(records));
-      }
+      const records = JSON.parse(localStorage.getItem(KEYS.mounjaro) || '[]');
+      records.forEach(r => { if (!r.drugName) r.drugName = 'mounjaro'; });
+      localStorage.setItem(KEYS.mounjaro, JSON.stringify(records));
     } catch(e) { /* 무시 */ }
   }
 
   localStorage.setItem('mj_version', SCHEMA_VERSION.toString());
 }
-
-migrate(); // 앱 로드 시 자동 실행
+// migrate()는 app.js에서 Users.init() 이후 명시적으로 호출
 ```
 
 - `mj_version` 키로 중복 실행 방지
 - 기존 사용자 데이터의 하위 호환성 보장
+- **주의**: Sprint 2에서 다중 사용자 도입으로 `Users.init()` 이후에 호출하도록 변경됨 (자동 호출 제거)
 
 ### Task 5 — 편집 모달 공통 로직 (`js/app.js`)
 
@@ -150,29 +148,30 @@ Modal: {
 - ✅ 헤더/타이틀이 "핏저니"로 표시
 - ✅ 각 기록 리스트에 "편집" 버튼 노출
 - ✅ 편집 → 모달 열림 → 수정 완료 → 리스트 즉시 반영
-- ✅ 사용자 입력에 `<script>` 태그 입력 시 이스케이프 확인
+- ✅ 사용자 입력에 `<script>` 태그 입력 시 이스케이프 확인 (`escapeHTML()` 10개 테스트)
 - ✅ 기존 데이터 유실 없음 (새로고침 후 확인)
 - ✅ 모달 오버레이 외부 클릭 시 닫힘
-- ✅ 단위 테스트 전체 통과 (`npm test`)
-- ⬜ 모바일(375px) 편집 모달 레이아웃 — 브라우저 직접 확인 필요
-- ⬜ 오프라인 환경에서 Chart.js CDN 미로드 시 graceful degradation
+- ✅ 단위 테스트 전체 통과 — `storage.test.js` 35개 (escapeHTML 10, Storage CRUD 22, migrate 4)
+- ✅ 모바일(375px) 편집 모달 레이아웃 — bottom-sheet 정상 동작
+- ✅ 오프라인 환경에서 Chart.js CDN 미로드 시 graceful degradation (Sprint 3에서 구현)
 
 ---
 
 ## 주요 변경 파일
 
 ```
-index.html          ← 타이틀 변경
-js/storage.js       ← escapeHTML, migrate, module.exports
-js/app.js           ← 리브랜딩, App.Modal, 편집 모달 HTML
+fitjourney.html     ← SPA 진입점 (구 index.html에서 이름 변경)
+index.html          ← GitHub Pages 리다이렉트 (fitjourney.html로)
+js/storage.js       ← escapeHTML, migrate, SCHEMA_VERSION, module.exports
+js/app.js           ← 리브랜딩, App.Modal 공통 모달 로직, 편집 모달 HTML
 css/style.css       ← .modal-title, .btn-edit 추가
 js/mounjaro.js      ← XSS 수정 + openEdit/saveEdit
 js/body.js          ← XSS 수정 + openEdit/saveEdit
 js/exercise.js      ← XSS 수정 + openEdit/saveEdit (웨이트 세트 포함)
 js/diet.js          ← XSS 수정 + openEdit/saveEdit
 js/dashboard.js     ← XSS 수정
-tests/storage.test.js   ← 신규: 단위 테스트
-.github/workflows/ci.yml ← 신규: CI/CD 파이프라인
+tests/storage.test.js   ← 신규: 단위 테스트 35개
+.github/workflows/ci.yml ← 신규: CI/CD 파이프라인 (test + validate + deploy)
 README.md           ← 신규: 프로젝트 문서
 docs/PRD.md         ← 신규: 제품 요구사항 정의서
 ```

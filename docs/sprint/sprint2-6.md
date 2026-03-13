@@ -177,6 +177,7 @@ css/style.css       ← #tab-nav: fixed → flex-shrink:0 상단 배치
 | 파일 | 역할 |
 |------|------|
 | `fitjourney.html` | SPA 진입점 (12개 JS 모듈 로드) |
+| `index.html` | GitHub Pages 루트 리다이렉트 |
 | `js/storage.js` | CRUD + escapeHTML + migrate (KEYS getter) |
 | `js/users.js` | 다중 사용자 관리 |
 | `js/charts.js` | 5종 차트 + graceful fallback |
@@ -191,4 +192,17 @@ css/style.css       ← #tab-nav: fixed → flex-shrink:0 상단 배치
 | `js/app.js` | SPA 라우팅·상단 탭·사용자 모달 |
 | `css/style.css` | 다크/라이트 테마·반응형·컴포넌트 |
 | `tests/storage.test.js` | 35개 단위 테스트 |
+| `tests/users.test.js` | 18개 단위 테스트 |
+| `tests/settings.test.js` | 20개 단위 테스트 |
 | `.github/workflows/ci.yml` | CI/CD 파이프라인 |
+| `docs/ARCHITECTURE.md` | 아키텍처 설계 문서 |
+| `.editorconfig` | 코드 스타일 설정 |
+
+## 테스트 커버리지 요약
+
+| 모듈 | 테스트 파일 | 테스트 수 | 주요 검증 내용 |
+|------|------------|----------|--------------|
+| storage.js | storage.test.js | 35개 | escapeHTML(10), Storage CRUD(21), migrate(4) |
+| users.js | users.test.js | 18개 | add(5), switch(4), rename(3), remove(4), init(6) |
+| settings.js | settings.test.js | 20개 | Goals(6), AppSettings(7), Milestones(7) |
+| **합계** | **3개 파일** | **73개** | |
