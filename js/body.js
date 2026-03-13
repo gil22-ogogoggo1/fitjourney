@@ -8,6 +8,12 @@ const BodyPage = {
     container.innerHTML = `
       <div class="accent-line"></div>
 
+      <!-- 프로필 카드 -->
+      <div id="body-profile"></div>
+
+      <!-- 또래 평균 비교 카드 -->
+      <div id="body-comparison"></div>
+
       <!-- 요약 카드 -->
       <div id="body-summary"></div>
 
@@ -35,7 +41,7 @@ const BodyPage = {
           </div>
           <div class="form-group">
             <label class="form-label">체중 (kg)</label>
-            <input type="number" class="form-input" id="body-weight" placeholder="예: 75.3" step="0.1" min="30" max="250">
+            <input type="number" class="form-input" id="body-weight" placeholder="예: 75.3" step="0.01" min="30" max="250">
           </div>
         </div>
 
@@ -87,50 +93,190 @@ const BodyPage = {
     `;
 
     document.getElementById('body-save-btn').addEventListener('click', () => this.save());
+    this.renderProfile();
+    this.renderComparison();
     this.renderSummary();
     this.renderChart();
     this.renderList();
   },
 
-  save() {
-    const date    = document.getElementById('body-date').value;
-    const weight  = document.getElementById('body-weight').value;
-    const fat     = document.getElementById('body-fat').value;
-    const muscle  = document.getElementById('body-muscle').value;
-    const bmi     = document.getElementById('body-bmi').value;
-    const water   = document.getElementById('body-water').value;
-    const visceral = document.getElementById('body-visceral').value;
-    const memo    = document.getElementById('body-memo').value.trim();
-
-    if (!date) { showToast('날짜를 입력해주세요.'); return; }
-    if (!weight) { showToast('체중을 입력해주세요.'); return; }
-
-    Storage.add('body', {
-      date,
-      weight:   parseFloat(weight),
-      fat:      fat ? parseFloat(fat) : null,
-      muscle:   muscle ? parseFloat(muscle) : null,
-      bmi:      bmi ? parseFloat(bmi) : null,
-      water:    water ? parseFloat(water) : null,
-      visceral: visceral ? parseInt(visceral) : null,
-      memo,
-    });
-
-    showToast('✅ 체중 기록이 저장되었습니다.');
-    document.getElementById('body-date').value = todayStr();
-    document.getElementById('body-weight').value = '';
-    document.getElementById('body-fat').value = '';
-    document.getElementById('body-muscle').value = '';
-    document.getElementById('body-bmi').value = '';
-    document.getElementById('body-water').value = '';
-    document.getElementById('body-visceral').value = '';
-    document.getElementById('body-memo').value = '';
-
-    this.renderSummary();
-    this.renderChart();
-    this.renderList();
+  // ── 체중 소수점 2자리 포맷 ──
+  fmtW(val) {
+    if (val === null || val === undefined) return '-';
+    return Number(val).toFixed(2);
   },
 
+  // ── 프로필 카드 ──────────────────────────────────────────────
+  renderProfile() {
+    const el = document.getElementById('body-profile');
+    if (!el) return;
+    const p = Profile.get();
+
+    if (!p) {
+      el.innerHTML = `
+        <div class="card" style="border-color:rgba(167,139,250,0.25);margin-bottom:12px;">
+          <div class="card-header" style="margin-bottom:0;">
+            <span class="card-title">👤 내 프로필</span>
+            <button class="btn btn-ghost btn-sm" onclick="BodyPage.openProfileEdit()">설정하기</button>
+          </div>
+          <p class="text-dim" style="font-size:12px;margin-top:8px;">
+            키·나이·성별을 입력하면 또래 평균과 비교할 수 있습니다.
+          </p>
+        </div>`;
+      return;
+    }
+
+    const bmiVal = Profile.calcBMI(
+      Storage.getAll('body').filter(r => r.weight)[0]?.weight,
+      p.height
+    );
+    const bmiInfo = bmiVal ? Profile.bmiLabel(bmiVal) : null;
+
+    el.innerHTML = `
+      <div class="card" style="border-color:rgba(167,139,250,0.25);margin-bottom:12px;">
+        <div class="card-header" style="margin-bottom:8px;">
+          <span class="card-title">👤 내 프로필</span>
+          <button class="btn btn-ghost btn-sm" onclick="BodyPage.openProfileEdit()">편집</button>
+        </div>
+        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+          <div class="profile-chip">${Profile.genderLabel(p.gender)}</div>
+          <div class="profile-chip">${p.age}세 <span class="text-dim">(${Profile.ageGroupLabel(p.age)})</span></div>
+          <div class="profile-chip">${p.height}cm</div>
+          ${bmiInfo ? `<div class="profile-chip"><span class="${bmiInfo.cls}">BMI ${bmiVal.toFixed(2)} · ${bmiInfo.text}</span></div>` : ''}
+        </div>
+      </div>`;
+  },
+
+  openProfileEdit() {
+    const p = Profile.get() || {};
+    App.Modal.open(`
+      <h2 class="modal-title">👤 내 프로필 설정</h2>
+      <div class="form-group">
+        <label class="form-label">성별</label>
+        <div style="display:flex;gap:10px;">
+          <label class="profile-radio-label">
+            <input type="radio" name="profile-gender" value="male" ${p.gender === 'male' ? 'checked' : ''}>
+            남성
+          </label>
+          <label class="profile-radio-label">
+            <input type="radio" name="profile-gender" value="female" ${p.gender === 'female' ? 'checked' : ''}>
+            여성
+          </label>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">나이</label>
+          <input type="number" class="form-input" id="profile-age" value="${p.age || ''}" min="10" max="90" placeholder="예: 35">
+        </div>
+        <div class="form-group">
+          <label class="form-label">키 (cm)</label>
+          <input type="number" class="form-input" id="profile-height" value="${p.height || ''}" min="100" max="220" placeholder="예: 170">
+        </div>
+      </div>
+      <p class="text-dim" style="font-size:12px;margin-bottom:14px;">
+        * 한국인 평균 체성분(국민건강영양조사 기반)과 비교하는 데 사용됩니다.
+      </p>
+      <button class="btn btn-primary" onclick="BodyPage.saveProfile()">저장</button>
+    `);
+  },
+
+  saveProfile() {
+    const gender = document.querySelector('input[name="profile-gender"]:checked')?.value;
+    const age    = document.getElementById('profile-age').value;
+    const height = document.getElementById('profile-height').value;
+
+    if (!gender) { showToast('성별을 선택해주세요.'); return; }
+    if (!age)    { showToast('나이를 입력해주세요.'); return; }
+    if (!height) { showToast('키를 입력해주세요.'); return; }
+
+    Profile.save({ gender, age: parseInt(age), height: parseFloat(height) });
+    App.Modal.close();
+    showToast('✅ 프로필이 저장되었습니다.');
+    this.renderProfile();
+    this.renderComparison();
+  },
+
+  // ── 또래 평균 비교 카드 ──────────────────────────────────────
+  renderComparison() {
+    const el = document.getElementById('body-comparison');
+    if (!el) return;
+
+    const p = Profile.get();
+    if (!p) { el.innerHTML = ''; return; }
+
+    const records = Storage.getAll('body').filter(r => r.weight);
+    if (records.length === 0) { el.innerHTML = ''; return; }
+
+    const latest  = records[0];
+    const avg     = Profile.getAverage(p.gender, p.age);
+    if (!avg) { el.innerHTML = ''; return; }
+
+    // BMI: 프로필 키 + 최근 체중으로 계산
+    const myBMI = Profile.calcBMI(latest.weight, p.height);
+
+    const rows = [
+      this._compRow('체중',    latest.weight,  avg.weight,  'kg',  true),
+      this._compRow('BMI',     myBMI,          avg.bmi,     '',    true),
+      this._compRow('체지방률', latest.fat,     avg.fat,     '%',   true),
+      this._compRow('골격근량', latest.muscle,  avg.muscle,  'kg',  false),
+    ].filter(Boolean).join('');
+
+    const gLabel = Profile.genderLabel(p.gender);
+    const aLabel = Profile.ageGroupLabel(p.age);
+
+    el.innerHTML = `
+      <div class="card" style="border-color:rgba(96,165,250,0.25);margin-bottom:12px;">
+        <div class="card-header" style="margin-bottom:4px;">
+          <span class="card-title">📊 또래 평균 비교</span>
+          <span class="badge badge-blue" style="font-size:10px;">${gLabel} ${aLabel}</span>
+        </div>
+        <p class="text-dim" style="font-size:11px;margin-bottom:12px;">
+          기준: 한국인 국민건강영양조사 · ${latest.fat ? '인바디 포함' : '체중/BMI만 표시'}
+        </p>
+        <div class="comparison-header">
+          <span></span>
+          <span>나</span>
+          <span>또래 평균</span>
+          <span>차이</span>
+        </div>
+        ${rows}
+      </div>`;
+  },
+
+  _compRow(label, myVal, avgVal, unit, lowerIsBetter) {
+    if (myVal === null || myVal === undefined) return '';
+
+    const diff    = myVal - avgVal;
+    const absDiff = Math.abs(diff);
+    const threshold = avgVal * 0.03; // 3% 이내 → 평균 수준
+
+    let cls, text;
+    if (absDiff < threshold) {
+      cls  = 'text-dim';
+      text = '≈ 평균 수준';
+    } else if (lowerIsBetter) {
+      cls  = diff < 0 ? 'text-green' : 'text-coral';
+      text = diff < 0
+        ? `▼${absDiff.toFixed(2)}${unit} 낮음`
+        : `▲${absDiff.toFixed(2)}${unit} 높음`;
+    } else {
+      cls  = diff > 0 ? 'text-green' : 'text-coral';
+      text = diff > 0
+        ? `▲${absDiff.toFixed(2)}${unit} 높음`
+        : `▼${absDiff.toFixed(2)}${unit} 낮음`;
+    }
+
+    return `
+      <div class="comparison-row">
+        <span class="comparison-label">${label}</span>
+        <span class="comparison-mine">${Number(myVal).toFixed(2)}<span class="comparison-unit">${unit}</span></span>
+        <span class="comparison-avg">${Number(avgVal).toFixed(2)}<span class="comparison-unit">${unit}</span></span>
+        <span class="comparison-delta ${cls}">${text}</span>
+      </div>`;
+  },
+
+  // ── 요약 카드 ────────────────────────────────────────────────
   renderSummary() {
     const el = document.getElementById('body-summary');
     if (!el) return;
@@ -143,7 +289,7 @@ const BodyPage = {
 
     const latest = records[0];
     const oldest = records[records.length - 1];
-    const diff   = (latest.weight - oldest.weight).toFixed(1);
+    const diff   = (latest.weight - oldest.weight).toFixed(2);
     const diffClass = diff <= 0 ? 'pos' : 'neg';
     const diffSign  = diff > 0 ? '+' : '';
 
@@ -151,28 +297,29 @@ const BodyPage = {
       <div class="dash-grid" style="margin-bottom:12px;">
         <div class="dash-card">
           <div class="stat-label">현재 체중</div>
-          <div class="stat-big text-amber">${latest.weight}<span class="stat-unit">kg</span></div>
+          <div class="stat-big text-amber">${this.fmtW(latest.weight)}<span class="stat-unit">kg</span></div>
           <div class="stat-label">${formatDate(latest.date)}</div>
         </div>
         <div class="dash-card">
           <div class="stat-label">시작 대비</div>
           <div class="stat-big"><span class="stat-change ${diffClass}">${diffSign}${diff}kg</span></div>
-          <div class="stat-label">시작: ${oldest.weight}kg</div>
+          <div class="stat-label">시작: ${this.fmtW(oldest.weight)}kg</div>
         </div>
-        ${latest.fat ? `
+        ${latest.fat !== null && latest.fat !== undefined ? `
         <div class="dash-card">
           <div class="stat-label">체지방률</div>
-          <div class="stat-big">${latest.fat}<span class="stat-unit">%</span></div>
+          <div class="stat-big">${this.fmtW(latest.fat)}<span class="stat-unit">%</span></div>
         </div>` : ''}
-        ${latest.muscle ? `
+        ${latest.muscle !== null && latest.muscle !== undefined ? `
         <div class="dash-card">
           <div class="stat-label">골격근량</div>
-          <div class="stat-big">${latest.muscle}<span class="stat-unit">kg</span></div>
+          <div class="stat-big">${this.fmtW(latest.muscle)}<span class="stat-unit">kg</span></div>
         </div>` : ''}
       </div>
     `;
   },
 
+  // ── 차트 ─────────────────────────────────────────────────────
   renderChart() {
     const records = Storage.getAll('body')
       .filter(r => r.weight)
@@ -202,6 +349,7 @@ const BodyPage = {
     Charts.renderWeightChart('body-chart', records);
   },
 
+  // ── 기록 리스트 ───────────────────────────────────────────────
   renderList() {
     const records = Storage.getAll('body');
     const el = document.getElementById('body-list');
@@ -218,15 +366,15 @@ const BodyPage = {
 
     el.innerHTML = records.map(r => {
       const inbodyBadges = [];
-      if (r.fat !== null && r.fat !== undefined) inbodyBadges.push(`체지방 ${r.fat}%`);
-      if (r.muscle !== null && r.muscle !== undefined) inbodyBadges.push(`근육 ${r.muscle}kg`);
-      if (r.bmi !== null && r.bmi !== undefined) inbodyBadges.push(`BMI ${r.bmi}`);
+      if (r.fat    !== null && r.fat    !== undefined) inbodyBadges.push(`체지방 ${this.fmtW(r.fat)}%`);
+      if (r.muscle !== null && r.muscle !== undefined) inbodyBadges.push(`근육 ${this.fmtW(r.muscle)}kg`);
+      if (r.bmi    !== null && r.bmi    !== undefined) inbodyBadges.push(`BMI ${this.fmtW(r.bmi)}`);
 
       return `
         <div class="record-item">
           <div class="record-icon amber">⚖️</div>
           <div class="record-body">
-            <div class="record-title">${formatDate(r.date)} · <span class="text-amber">${r.weight}kg</span></div>
+            <div class="record-title">${formatDate(r.date)} · <span class="text-amber">${this.fmtW(r.weight)}kg</span></div>
             ${inbodyBadges.length ? `<div class="record-meta mt-4">${inbodyBadges.join(' · ')}</div>` : ''}
             ${r.memo ? `<div class="record-meta mt-4">"${escapeHTML(r.memo)}"</div>` : ''}
           </div>
@@ -239,6 +387,49 @@ const BodyPage = {
     }).join('');
   },
 
+  // ── 저장 ─────────────────────────────────────────────────────
+  save() {
+    const date     = document.getElementById('body-date').value;
+    const weight   = document.getElementById('body-weight').value;
+    const fat      = document.getElementById('body-fat').value;
+    const muscle   = document.getElementById('body-muscle').value;
+    const bmi      = document.getElementById('body-bmi').value;
+    const water    = document.getElementById('body-water').value;
+    const visceral = document.getElementById('body-visceral').value;
+    const memo     = document.getElementById('body-memo').value.trim();
+
+    if (!date)   { showToast('날짜를 입력해주세요.'); return; }
+    if (!weight) { showToast('체중을 입력해주세요.'); return; }
+
+    Storage.add('body', {
+      date,
+      weight:   parseFloat(weight),
+      fat:      fat      ? parseFloat(fat)      : null,
+      muscle:   muscle   ? parseFloat(muscle)   : null,
+      bmi:      bmi      ? parseFloat(bmi)      : null,
+      water:    water    ? parseFloat(water)    : null,
+      visceral: visceral ? parseInt(visceral)   : null,
+      memo,
+    });
+
+    showToast('✅ 체중 기록이 저장되었습니다.');
+    document.getElementById('body-date').value    = todayStr();
+    document.getElementById('body-weight').value  = '';
+    document.getElementById('body-fat').value     = '';
+    document.getElementById('body-muscle').value  = '';
+    document.getElementById('body-bmi').value     = '';
+    document.getElementById('body-water').value   = '';
+    document.getElementById('body-visceral').value = '';
+    document.getElementById('body-memo').value    = '';
+
+    this.renderProfile();
+    this.renderComparison();
+    this.renderSummary();
+    this.renderChart();
+    this.renderList();
+  },
+
+  // ── 편집 모달 ─────────────────────────────────────────────────
   openEdit(id) {
     const r = Storage.getById('body', id);
     if (!r) return;
@@ -252,7 +443,7 @@ const BodyPage = {
         </div>
         <div class="form-group">
           <label class="form-label">체중 (kg)</label>
-          <input type="number" class="form-input" id="body-edit-weight" value="${r.weight || ''}" step="0.1" min="30" max="250">
+          <input type="number" class="form-input" id="body-edit-weight" value="${r.weight || ''}" step="0.01" min="30" max="250">
         </div>
       </div>
       <div class="form-row">
@@ -303,16 +494,18 @@ const BodyPage = {
     Storage.update('body', id, {
       date,
       weight:   parseFloat(weight),
-      fat:      fat ? parseFloat(fat) : null,
-      muscle:   muscle ? parseFloat(muscle) : null,
-      bmi:      bmi ? parseFloat(bmi) : null,
-      water:    water ? parseFloat(water) : null,
-      visceral: visceral ? parseInt(visceral) : null,
+      fat:      fat      ? parseFloat(fat)      : null,
+      muscle:   muscle   ? parseFloat(muscle)   : null,
+      bmi:      bmi      ? parseFloat(bmi)      : null,
+      water:    water    ? parseFloat(water)    : null,
+      visceral: visceral ? parseInt(visceral)   : null,
       memo,
     });
 
     App.Modal.close();
     showToast('✅ 수정되었습니다.');
+    this.renderProfile();
+    this.renderComparison();
     this.renderSummary();
     this.renderChart();
     this.renderList();
@@ -322,6 +515,8 @@ const BodyPage = {
     if (!confirm('이 기록을 삭제하시겠습니까?')) return;
     Storage.remove('body', id);
     showToast('삭제되었습니다.');
+    this.renderProfile();
+    this.renderComparison();
     this.renderSummary();
     this.renderChart();
     this.renderList();

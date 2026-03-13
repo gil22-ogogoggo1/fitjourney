@@ -84,7 +84,7 @@ const Dashboard = {
 
     const latest = records[0];
     const oldest = records[records.length - 1];
-    const diff   = (latest.weight - oldest.weight).toFixed(1);
+    const diff   = (latest.weight - oldest.weight).toFixed(2);
     const diffClass = diff <= 0 ? 'pos' : 'neg';
     const diffSign  = diff > 0 ? '+' : '';
 
@@ -96,12 +96,12 @@ const Dashboard = {
         </div>
         <div style="display:flex;gap:16px;align-items:center;margin-bottom:12px;">
           <div>
-            <div class="stat-big text-amber">${latest.weight}<span class="stat-unit">kg</span></div>
+            <div class="stat-big text-amber">${Number(latest.weight).toFixed(2)}<span class="stat-unit">kg</span></div>
             <div class="stat-label">현재 · ${formatDate(latest.date)}</div>
           </div>
           <div style="height:40px;width:1px;background:var(--border);"></div>
           <div>
-            <div style="font-size:20px;font-weight:700;">${oldest.weight}<span class="stat-unit">kg</span></div>
+            <div style="font-size:20px;font-weight:700;">${Number(oldest.weight).toFixed(2)}<span class="stat-unit">kg</span></div>
             <div class="stat-label">시작 · ${formatDate(oldest.date)}</div>
           </div>
         </div>

@@ -612,6 +612,100 @@ a {
 
 .hidden { display: none !important; }
 
+/* ── 프로필 ── */
+.profile-chip {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-sub);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 12px;
+}
+
+.profile-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text-sub);
+  cursor: pointer;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  flex: 1;
+  justify-content: center;
+  transition: border-color 0.2s;
+}
+
+.profile-radio-label:has(input:checked) {
+  border-color: var(--purple);
+  color: var(--purple);
+  background: rgba(167,139,250,0.1);
+}
+
+.profile-radio-label input[type="radio"] {
+  accent-color: var(--purple);
+}
+
+/* ── 또래 평균 비교 ── */
+.comparison-header {
+  display: grid;
+  grid-template-columns: 52px 1fr 1fr 1fr;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.comparison-row {
+  display: grid;
+  grid-template-columns: 52px 1fr 1fr 1fr;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.comparison-row:last-child {
+  border-bottom: none;
+}
+
+.comparison-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.comparison-mine {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.comparison-avg {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.comparison-unit {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-left: 1px;
+}
+
+.comparison-delta {
+  font-size: 12px;
+  font-weight: 600;
+  text-align: right;
+}
+
 /* ── Responsive (태블릿 이상) ── */
 @media (min-width: 481px) {
   #tab-nav {
