@@ -16,16 +16,22 @@ const App = {
   },
 
   init() {
+    Users.init();   // 사용자 초기화 (기존 데이터 마이그레이션 포함)
+    migrate();      // 현재 사용자의 스키마 마이그레이션
     this.renderShell();
     this.navigateTo('dashboard');
   },
 
   renderShell() {
+    const user = Users.getCurrent();
+    const avatarChar = user ? escapeHTML(user.name[0]) : '?';
+    const avatarColor = user ? user.color : 'var(--orange)';
+
     document.body.innerHTML = `
       <div id="app">
         <header id="app-header">
           <h1 id="page-title">대시보드</h1>
-          <span style="font-size:20px;" id="header-icon">🏠</span>
+          <button id="user-avatar-btn" class="user-avatar-btn" style="background:${avatarColor}" title="${user ? escapeHTML(user.name) : ''}" onclick="App.openUserModal()">${avatarChar}</button>
         </header>
 
         <div id="page-container"></div>
@@ -55,7 +61,7 @@ const App = {
 
         <div id="toast"></div>
 
-        <!-- 편집 바텀시트 모달 -->
+        <!-- 편집 / 사용자 바텀시트 모달 -->
         <div id="edit-modal" class="modal-overlay hidden">
           <div class="modal-sheet">
             <div class="modal-handle"></div>
@@ -96,16 +102,8 @@ const App = {
       exercise:  '운동 기록',
       diet:      '식사 기록',
     };
-    const icons = {
-      dashboard: '🏠',
-      mounjaro:  '💉',
-      body:      '⚖️',
-      exercise:  '🏃',
-      diet:      '🥗',
-    };
 
     document.getElementById('page-title').textContent = titles[tab];
-    document.getElementById('header-icon').textContent = icons[tab];
 
     // 페이지 렌더
     const container = document.getElementById('page-container');
@@ -127,6 +125,108 @@ const App = {
       document.getElementById('edit-modal').classList.add('hidden');
       document.getElementById('edit-modal-content').innerHTML = '';
     },
+  },
+
+  // ── 사용자 관리 ──
+  renderUserButton() {
+    const btn = document.getElementById('user-avatar-btn');
+    if (!btn) return;
+    const user = Users.getCurrent();
+    if (user) {
+      btn.textContent = user.name[0];
+      btn.style.background = user.color;
+      btn.title = user.name;
+    }
+  },
+
+  openUserModal() {
+    const users = Users.getAll();
+    const currentId = Users.getCurrentId();
+
+    const userItems = users.map(u => {
+      const isCurrent = u.id === currentId;
+      const switchBtn = !isCurrent
+        ? `<button class="btn btn-sm btn-ghost" onclick="App.switchUser('${u.id}')">전환</button>`
+        : '';
+      const deleteBtn = users.length > 1
+        ? `<button class="btn btn-sm btn-danger" onclick="App.deleteUser('${u.id}')">삭제</button>`
+        : '';
+      return `
+        <div class="user-list-item${isCurrent ? ' current' : ''}">
+          <div class="user-color-dot" style="background:${u.color}">${escapeHTML(u.name[0])}</div>
+          <span class="user-list-name">${escapeHTML(u.name)}</span>
+          ${isCurrent ? '<span class="user-current-badge">현재</span>' : ''}
+          <div class="user-list-actions">
+            ${switchBtn}
+            <button class="btn btn-sm btn-ghost" onclick="App.renameUser('${u.id}')">이름변경</button>
+            ${deleteBtn}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    App.Modal.open(`
+      <div class="modal-title">사용자 관리</div>
+      <div id="user-list">${userItems}</div>
+      <div class="user-add-form">
+        <input id="new-user-name" type="text" class="form-input" placeholder="새 사용자 이름" maxlength="20"
+          onkeydown="if(event.key==='Enter') App.addUser()">
+        <button class="btn btn-primary" onclick="App.addUser()">추가</button>
+      </div>
+    `);
+
+    // 입력창에 포커스
+    setTimeout(() => {
+      const input = document.getElementById('new-user-name');
+      if (input) input.focus();
+    }, 100);
+  },
+
+  switchUser(id) {
+    Users.switchTo(id);
+    migrate(); // 새로 전환된 사용자의 스키마 마이그레이션
+    App.Modal.close();
+    this.renderUserButton();
+    this.navigateTo(this.currentTab);
+    const user = Users.getCurrent();
+    showToast(`${user ? escapeHTML(user.name) : ''} 으로 전환됨`);
+  },
+
+  addUser() {
+    const input = document.getElementById('new-user-name');
+    if (!input) return;
+    const name = input.value.trim();
+    if (!name) { showToast('이름을 입력하세요'); return; }
+
+    const user = Users.add(name);
+    Users.switchTo(user.id);
+    App.Modal.close();
+    this.renderUserButton();
+    this.navigateTo(this.currentTab);
+    showToast(`${escapeHTML(name)} 추가됨`);
+  },
+
+  deleteUser(id) {
+    const users = Users.getAll();
+    if (users.length <= 1) { showToast('마지막 사용자는 삭제할 수 없습니다'); return; }
+    const user = users.find(u => u.id === id);
+    if (!confirm(`"${user?.name}" 사용자와 모든 기록을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
+    Users.remove(id);
+    App.Modal.close();
+    this.renderUserButton();
+    this.navigateTo(this.currentTab);
+    showToast('삭제됨');
+  },
+
+  renameUser(id) {
+    const user = Users.getAll().find(u => u.id === id);
+    if (!user) return;
+    const newName = prompt('새 이름을 입력하세요:', user.name);
+    if (!newName || !newName.trim()) return;
+    Users.rename(id, newName);
+    this.openUserModal(); // 모달 내용 갱신
+    if (id === Users.getCurrentId()) this.renderUserButton();
+    showToast('이름이 변경됨');
   },
 };
 

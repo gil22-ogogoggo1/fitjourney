@@ -13,11 +13,12 @@ function escapeHTML(str) {
     .replace(/'/g, '&#039;');
 }
 
+// KEYS는 ES6 getter로 현재 사용자 ID를 동적으로 반영
 const KEYS = {
-  mounjaro: 'mj_mounjaro',
-  body:     'mj_body',
-  exercise: 'mj_exercise',
-  diet:     'mj_diet',
+  get mounjaro() { return `mj_${localStorage.getItem('mj_current_user') || 'default'}_mounjaro`; },
+  get body()     { return `mj_${localStorage.getItem('mj_current_user') || 'default'}_body`; },
+  get exercise() { return `mj_${localStorage.getItem('mj_current_user') || 'default'}_exercise`; },
+  get diet()     { return `mj_${localStorage.getItem('mj_current_user') || 'default'}_diet`; },
 };
 
 const Storage = {
@@ -91,11 +92,12 @@ function migrate() {
   // v0 → v1: mounjaro 기록에 drugName 기본값 추가
   if (current < 1) {
     try {
-      const raw = localStorage.getItem('mj_mounjaro');
+      const key = KEYS.mounjaro;
+      const raw = localStorage.getItem(key);
       if (raw) {
         const records = JSON.parse(raw);
         records.forEach(r => { if (!r.drugName) r.drugName = 'mounjaro'; });
-        localStorage.setItem('mj_mounjaro', JSON.stringify(records));
+        localStorage.setItem(key, JSON.stringify(records));
       }
     } catch(e) { /* 무시 */ }
   }
@@ -103,7 +105,7 @@ function migrate() {
   localStorage.setItem('mj_version', SCHEMA_VERSION.toString());
 }
 
-migrate();
+// migrate()는 app.js에서 Users.init() 이후 명시적으로 호출
 
 // ── 테스트 환경 모듈 내보내기 (Node.js/Jest) ──
 if (typeof module !== 'undefined') {

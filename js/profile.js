@@ -3,7 +3,7 @@
  */
 
 const Profile = {
-  KEY: 'mj_profile',
+  get KEY() { return `mj_${localStorage.getItem('mj_current_user') || 'default'}_profile`; },
 
   get() {
     try {

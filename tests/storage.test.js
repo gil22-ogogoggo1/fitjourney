@@ -319,13 +319,25 @@ describe('migrate()', () => {
 });
 
 // ────────────────────────────────────────
-// KEYS 상수 검증
+// KEYS 상수 검증 (동적 getter — 사용자 ID 반영)
 // ────────────────────────────────────────
 describe('KEYS 상수', () => {
-  test('모든 필수 키가 정의됨', () => {
-    expect(KEYS.mounjaro).toBe('mj_mounjaro');
-    expect(KEYS.body).toBe('mj_body');
-    expect(KEYS.exercise).toBe('mj_exercise');
-    expect(KEYS.diet).toBe('mj_diet');
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  test('사용자 미설정 시 default 접두사 사용', () => {
+    expect(KEYS.mounjaro).toBe('mj_default_mounjaro');
+    expect(KEYS.body).toBe('mj_default_body');
+    expect(KEYS.exercise).toBe('mj_default_exercise');
+    expect(KEYS.diet).toBe('mj_default_diet');
+  });
+
+  test('사용자 설정 시 해당 사용자 ID 접두사 사용', () => {
+    localStorage.setItem('mj_current_user', 'user123');
+    expect(KEYS.mounjaro).toBe('mj_user123_mounjaro');
+    expect(KEYS.body).toBe('mj_user123_body');
+    expect(KEYS.exercise).toBe('mj_user123_exercise');
+    expect(KEYS.diet).toBe('mj_user123_diet');
   });
 });
