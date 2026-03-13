@@ -1,14 +1,24 @@
 /**
- * mounjaro.js — 마운자로 투약 기록 페이지
+ * mounjaro.js — GLP-1 투약 기록 페이지
  */
 
 const MounjaroPage = {
-  DOSES: ['2.5mg', '5mg', '7.5mg', '10mg', '12.5mg', '15mg'],
+  DRUGS: {
+    mounjaro: { label: '마운자로', doses: ['2.5mg', '5mg', '7.5mg', '10mg', '12.5mg', '15mg'], interval: 7 },
+    wegovy:   { label: '위고비',   doses: ['0.25mg', '0.5mg', '1mg', '1.7mg', '2.4mg'],        interval: 7 },
+    saxenda:  { label: '삭센다',   doses: ['0.6mg', '1.2mg', '1.8mg', '2.4mg', '3mg'],          interval: 1 },
+    ozempic:  { label: '오젬픽',   doses: ['0.25mg', '0.5mg', '1mg', '2mg'],                   interval: 7 },
+    other:    { label: '기타',     doses: ['0.25mg', '0.5mg', '1mg', '2.5mg', '5mg', '10mg'],  interval: 7 },
+  },
   SITES: ['복부', '허벅지', '팔'],
   SIDE_EFFECTS: ['구역질', '구토', '변비', '설사', '식욕저하', '피로감', '두통', '주사부위 통증'],
 
   render() {
     const container = document.getElementById('page-container');
+    const drugOptions = Object.entries(this.DRUGS)
+      .map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('');
+    const defaultDoses = this.DRUGS.mounjaro.doses;
+
     container.innerHTML = `
       <div class="accent-line"></div>
 
@@ -20,28 +30,35 @@ const MounjaroPage = {
 
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">투약일</label>
-            <input type="date" class="form-input" id="mj-date" value="${todayStr()}">
+            <label class="form-label">약품명</label>
+            <select class="form-select" id="mj-drug" onchange="MounjaroPage.updateDoses('mj-dose', this.value)">
+              ${drugOptions}
+            </select>
           </div>
           <div class="form-group">
-            <label class="form-label">용량</label>
-            <select class="form-select" id="mj-dose">
-              ${this.DOSES.map(d => `<option value="${d}">${d}</option>`).join('')}
-            </select>
+            <label class="form-label">투약일</label>
+            <input type="date" class="form-input" id="mj-date" value="${todayStr()}">
           </div>
         </div>
 
         <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">용량</label>
+            <select class="form-select" id="mj-dose">
+              ${defaultDoses.map(d => `<option value="${d}">${d}</option>`).join('')}
+            </select>
+          </div>
           <div class="form-group">
             <label class="form-label">투약 부위</label>
             <select class="form-select" id="mj-site">
               ${this.SITES.map(s => `<option value="${s}">${s}</option>`).join('')}
             </select>
           </div>
-          <div class="form-group">
-            <label class="form-label">비용 (원)</label>
-            <input type="number" class="form-input" id="mj-cost" placeholder="예: 150000" min="0">
-          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">비용 (원)</label>
+          <input type="number" class="form-input" id="mj-cost" placeholder="예: 150000" min="0">
         </div>
 
         <div class="form-group">
@@ -79,21 +96,42 @@ const MounjaroPage = {
     this.renderList();
   },
 
+  // 약품 변경 시 용량 옵션 갱신
+  updateDoses(selectId, drugKey) {
+    const drug = this.DRUGS[drugKey] || this.DRUGS.other;
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    const current = select.value;
+    select.innerHTML = drug.doses
+      .map(d => `<option value="${d}" ${d === current ? 'selected' : ''}>${d}</option>`)
+      .join('');
+  },
+
+  // 약품 키 → 라벨 변환 (구버전 호환)
+  drugLabel(key) {
+    return this.DRUGS[key]?.label || key || '마운자로';
+  },
+
+  // 약품 키 → 투약 간격 (일 단위)
+  drugInterval(key) {
+    return this.DRUGS[key]?.interval ?? 7;
+  },
+
   save() {
-    const date   = document.getElementById('mj-date').value;
-    const dose   = document.getElementById('mj-dose').value;
-    const site   = document.getElementById('mj-site').value;
-    const cost   = document.getElementById('mj-cost').value;
-    const memo   = document.getElementById('mj-memo').value.trim();
+    const drugName = document.getElementById('mj-drug').value;
+    const date     = document.getElementById('mj-date').value;
+    const dose     = document.getElementById('mj-dose').value;
+    const site     = document.getElementById('mj-site').value;
+    const cost     = document.getElementById('mj-cost').value;
+    const memo     = document.getElementById('mj-memo').value.trim();
     const sideEffects = [...document.querySelectorAll('.mj-side-effect:checked')]
       .map(el => el.value);
 
     if (!date) { showToast('투약일을 입력해주세요.'); return; }
 
-    Storage.add('mounjaro', { date, dose, site, cost: cost ? Number(cost) : null, sideEffects, memo });
+    Storage.add('mounjaro', { date, drugName, dose, site, cost: cost ? Number(cost) : null, sideEffects, memo });
     showToast('✅ 투약 기록이 저장되었습니다.');
 
-    // 폼 초기화
     document.getElementById('mj-date').value = todayStr();
     document.getElementById('mj-cost').value = '';
     document.getElementById('mj-memo').value = '';
@@ -108,15 +146,13 @@ const MounjaroPage = {
     const card = document.getElementById('mj-next-card');
     if (!card) return;
 
-    if (records.length === 0) {
-      card.innerHTML = '';
-      return;
-    }
+    if (records.length === 0) { card.innerHTML = ''; return; }
 
-    const last = records[0]; // 가장 최근
+    const last = records[0];
+    const interval = this.drugInterval(last.drugName);
     const lastDate = new Date(last.date);
     const nextDate = new Date(lastDate);
-    nextDate.setDate(lastDate.getDate() + 7);
+    nextDate.setDate(lastDate.getDate() + interval);
     const nextStr = nextDate.toISOString().slice(0, 10);
     const daysLeft = daysFromNow(nextStr);
 
@@ -125,16 +161,20 @@ const MounjaroPage = {
     else if (daysLeft > 0) daysLabel = `<span class="text-green">D-${daysLeft}</span>`;
     else daysLabel = `<span class="text-coral">${Math.abs(daysLeft)}일 경과</span>`;
 
+    const intervalLabel = interval === 1 ? '매일 투약' : `${interval}일 간격`;
+
     card.innerHTML = `
       <div class="card" style="border-color: rgba(255,179,0,0.25);">
         <div class="card-header">
           <span class="card-title">📅 다음 투약 예정</span>
           ${daysLabel}
         </div>
-        <div style="display:flex; gap:20px; align-items:center;">
-          <div>
-            <div class="stat-big text-amber">${formatDate(nextStr)}</div>
-            <div class="stat-label">마지막 투약: ${formatDate(last.date)} · <strong>${last.dose}</strong></div>
+        <div>
+          <div class="stat-big text-amber">${formatDate(nextStr)}</div>
+          <div class="stat-label">
+            마지막: ${formatDate(last.date)} · <strong>${last.dose}</strong> ·
+            <span class="drug-badge drug-${last.drugName || 'mounjaro'}">${this.drugLabel(last.drugName)}</span>
+            · ${intervalLabel}
           </div>
         </div>
       </div>
@@ -156,16 +196,19 @@ const MounjaroPage = {
     }
 
     el.innerHTML = records.map(r => {
-      const sideStr = r.sideEffects && r.sideEffects.length
-        ? r.sideEffects.join(', ')
-        : '없음';
+      const sideStr = r.sideEffects && r.sideEffects.length ? r.sideEffects.join(', ') : '없음';
       const costStr = r.cost ? `₩${r.cost.toLocaleString()}` : '-';
+      const drugKey = r.drugName || 'mounjaro';
 
       return `
         <div class="record-item">
           <div class="record-icon orange">💉</div>
           <div class="record-body">
-            <div class="record-title">${formatDate(r.date)} · <span class="text-amber">${r.dose}</span></div>
+            <div class="record-title">
+              ${formatDate(r.date)} ·
+              <span class="drug-badge drug-${drugKey}">${this.drugLabel(drugKey)}</span>
+              <span class="text-amber"> ${r.dose}</span>
+            </div>
             <div class="record-meta">부위: ${r.site} · 비용: ${costStr}</div>
             <div class="record-meta mt-4">부작용: ${sideStr}</div>
             ${r.memo ? `<div class="record-meta mt-4">"${escapeHTML(r.memo)}"</div>` : ''}
@@ -183,9 +226,21 @@ const MounjaroPage = {
     const r = Storage.getById('mounjaro', id);
     if (!r) return;
 
+    const currentDrug = r.drugName || 'mounjaro';
+    const drugDoses = this.DRUGS[currentDrug]?.doses || this.DRUGS.mounjaro.doses;
+
+    const drugOptions = Object.entries(this.DRUGS)
+      .map(([k, v]) => `<option value="${k}" ${k === currentDrug ? 'selected' : ''}>${v.label}</option>`)
+      .join('');
+
+    const doseOptions = drugDoses
+      .map(d => `<option value="${d}" ${r.dose === d ? 'selected' : ''}>${d}</option>`)
+      .join('');
+
     const sideEffectChecks = this.SIDE_EFFECTS.map(e => `
       <label class="checkbox-item">
-        <input type="checkbox" value="${e}" class="mj-edit-side-effect" ${r.sideEffects && r.sideEffects.includes(e) ? 'checked' : ''}>
+        <input type="checkbox" value="${e}" class="mj-edit-side-effect"
+          ${r.sideEffects && r.sideEffects.includes(e) ? 'checked' : ''}>
         ${e}
       </label>
     `).join('');
@@ -194,27 +249,32 @@ const MounjaroPage = {
       <h2 class="modal-title">💉 투약 기록 편집</h2>
       <div class="form-row">
         <div class="form-group">
+          <label class="form-label">약품명</label>
+          <select class="form-select" id="mj-edit-drug"
+            onchange="MounjaroPage.updateDoses('mj-edit-dose', this.value)">
+            ${drugOptions}
+          </select>
+        </div>
+        <div class="form-group">
           <label class="form-label">투약일</label>
           <input type="date" class="form-input" id="mj-edit-date" value="${r.date}">
         </div>
-        <div class="form-group">
-          <label class="form-label">용량</label>
-          <select class="form-select" id="mj-edit-dose">
-            ${this.DOSES.map(d => `<option value="${d}" ${r.dose === d ? 'selected' : ''}>${d}</option>`).join('')}
-          </select>
-        </div>
       </div>
       <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">용량</label>
+          <select class="form-select" id="mj-edit-dose">${doseOptions}</select>
+        </div>
         <div class="form-group">
           <label class="form-label">투약 부위</label>
           <select class="form-select" id="mj-edit-site">
             ${this.SITES.map(s => `<option value="${s}" ${r.site === s ? 'selected' : ''}>${s}</option>`).join('')}
           </select>
         </div>
-        <div class="form-group">
-          <label class="form-label">비용 (원)</label>
-          <input type="number" class="form-input" id="mj-edit-cost" value="${r.cost || ''}" min="0">
-        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">비용 (원)</label>
+        <input type="number" class="form-input" id="mj-edit-cost" value="${r.cost || ''}" min="0">
       </div>
       <div class="form-group">
         <label class="form-label">부작용</label>
@@ -229,16 +289,17 @@ const MounjaroPage = {
   },
 
   saveEdit(id) {
-    const date = document.getElementById('mj-edit-date').value;
-    const dose = document.getElementById('mj-edit-dose').value;
-    const site = document.getElementById('mj-edit-site').value;
-    const cost = document.getElementById('mj-edit-cost').value;
-    const memo = document.getElementById('mj-edit-memo').value.trim();
+    const drugName    = document.getElementById('mj-edit-drug').value;
+    const date        = document.getElementById('mj-edit-date').value;
+    const dose        = document.getElementById('mj-edit-dose').value;
+    const site        = document.getElementById('mj-edit-site').value;
+    const cost        = document.getElementById('mj-edit-cost').value;
+    const memo        = document.getElementById('mj-edit-memo').value.trim();
     const sideEffects = [...document.querySelectorAll('.mj-edit-side-effect:checked')].map(el => el.value);
 
     if (!date) { showToast('투약일을 입력해주세요.'); return; }
 
-    Storage.update('mounjaro', id, { date, dose, site, cost: cost ? Number(cost) : null, sideEffects, memo });
+    Storage.update('mounjaro', id, { date, drugName, dose, site, cost: cost ? Number(cost) : null, sideEffects, memo });
     App.Modal.close();
     showToast('✅ 수정되었습니다.');
     this.renderNextDose();
