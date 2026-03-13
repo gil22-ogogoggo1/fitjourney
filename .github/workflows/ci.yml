@@ -65,7 +65,7 @@ jobs:
           python3 -c "
           with open('fitjourney.html') as f:
               content = f.read()
-          scripts = ['storage.js', 'charts.js', 'mounjaro.js', 'body.js', 'exercise.js', 'diet.js', 'dashboard.js', 'app.js']
+          scripts = ['storage.js', 'users.js', 'charts.js', 'profile.js', 'sync.js', 'mounjaro.js', 'body.js', 'exercise.js', 'diet.js', 'dashboard.js', 'settings.js', 'app.js']
           positions = [(s, content.find(s)) for s in scripts]
           for name, pos in positions:
               status = '✅' if pos != -1 else '❌'

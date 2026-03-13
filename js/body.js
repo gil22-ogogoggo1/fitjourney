@@ -21,10 +21,26 @@ const BodyPage = {
       <div class="card">
         <div class="card-header">
           <span class="card-title">📈 체중 변화</span>
-          <span class="text-dim" style="font-size:12px;" id="body-period-label"></span>
+          <div class="chart-filter-group" role="group" aria-label="기간 필터">
+            <button class="chart-filter-btn active" onclick="BodyPage.setChartPeriod('all', this)">전체</button>
+            <button class="chart-filter-btn" onclick="BodyPage.setChartPeriod('3m', this)">3달</button>
+            <button class="chart-filter-btn" onclick="BodyPage.setChartPeriod('1m', this)">1달</button>
+            <button class="chart-filter-btn" onclick="BodyPage.setChartPeriod('1w', this)">1주</button>
+          </div>
         </div>
-        <div class="chart-wrap">
+        <div class="chart-wrap" id="body-chart-wrap">
           <canvas id="body-chart"></canvas>
+        </div>
+      </div>
+
+      <!-- 체성분 그래프 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📊 체성분 변화</span>
+          <span class="text-dim" style="font-size:11px;">체지방률 · 골격근량</span>
+        </div>
+        <div class="chart-wrap" id="body-comp-chart-wrap">
+          <canvas id="body-comp-chart"></canvas>
         </div>
       </div>
 
@@ -140,10 +156,12 @@ const BodyPage = {
     `;
 
     document.getElementById('body-save-btn').addEventListener('click', () => this.save());
+    this._chartPeriod = 'all';
     this.renderProfile();
     this.renderComparison();
     this.renderSummary();
     this.renderChart();
+    this.renderCompChart();
     this.renderList();
   },
 
@@ -366,34 +384,49 @@ const BodyPage = {
     `;
   },
 
-  // ── 차트 ─────────────────────────────────────────────────────
+  // ── 기간 필터 ─────────────────────────────────────────────────
+  setChartPeriod(period, btn) {
+    this._chartPeriod = period;
+    document.querySelectorAll('.chart-filter-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    this.renderChart();
+  },
+
+  // ── 체중 차트 ─────────────────────────────────────────────────
   renderChart() {
-    const records = Storage.getAll('body')
-      .filter(r => r.weight)
-      .slice(0, 30)
-      .reverse();
+    const all = Storage.getAll('body').filter(r => r.weight);
+    const now = new Date();
+    let filtered = all;
 
-    const canvas = document.getElementById('body-chart');
-    if (!canvas) return;
-
-    const periodLabel = document.getElementById('body-period-label');
-    if (records.length > 0 && periodLabel) {
-      periodLabel.textContent = `최근 ${records.length}회`;
+    if (this._chartPeriod === '1w') {
+      const cut = new Date(now); cut.setDate(now.getDate() - 7);
+      filtered = all.filter(r => new Date(r.date) >= cut);
+    } else if (this._chartPeriod === '1m') {
+      const cut = new Date(now); cut.setMonth(now.getMonth() - 1);
+      filtered = all.filter(r => new Date(r.date) >= cut);
+    } else if (this._chartPeriod === '3m') {
+      const cut = new Date(now); cut.setMonth(now.getMonth() - 3);
+      filtered = all.filter(r => new Date(r.date) >= cut);
     }
 
-    if (window._bodyChart) {
-      window._bodyChart.destroy();
-      window._bodyChart = null;
-    }
+    const records = filtered.slice(0, 60).reverse();
+    const wrap = document.getElementById('body-chart-wrap');
+    if (!wrap) return;
 
     if (records.length < 2) {
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      canvas.parentElement.innerHTML += `<p class="text-dim" style="text-align:center;font-size:13px;margin-top:8px;">데이터 2개 이상 입력 시 그래프가 표시됩니다.</p>`;
+      wrap.innerHTML = `<p class="text-dim" style="text-align:center;font-size:13px;padding:20px;">데이터 2개 이상 필요합니다.</p>`;
       return;
     }
-
+    if (!wrap.querySelector('canvas')) {
+      wrap.innerHTML = '<canvas id="body-chart"></canvas>';
+    }
     Charts.renderWeightChart('body-chart', records);
+  },
+
+  // ── 체성분 차트 ────────────────────────────────────────────────
+  renderCompChart() {
+    const records = Storage.getAll('body').filter(r => r.weight).slice(0, 30).reverse();
+    Charts.renderBodyCompChart('body-comp-chart', records);
   },
 
   // ── 기록 리스트 ───────────────────────────────────────────────

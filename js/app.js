@@ -13,11 +13,13 @@ const App = {
     body:      () => BodyPage.render(),
     exercise:  () => ExercisePage.render(),
     diet:      () => DietPage.render(),
+    settings:  () => SettingsPage.render(),
   },
 
   init() {
-    Users.init();   // 사용자 초기화 (기존 데이터 마이그레이션 포함)
-    migrate();      // 현재 사용자의 스키마 마이그레이션
+    Users.init();          // 사용자 초기화 (기존 데이터 마이그레이션 포함)
+    migrate();             // 현재 사용자의 스키마 마이그레이션
+    AppSettings.applyTheme(); // 저장된 테마 적용
     this.renderShell();
     this.navigateTo('dashboard');
   },
@@ -31,30 +33,33 @@ const App = {
       <div id="app">
         <header id="app-header">
           <h1 id="page-title">대시보드</h1>
-          <button id="user-avatar-btn" class="user-avatar-btn" style="background:${avatarColor}" title="${user ? escapeHTML(user.name) : ''}" onclick="App.openUserModal()">${avatarChar}</button>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button id="settings-btn" class="btn btn-ghost btn-sm" onclick="App.navigateTo('settings')" aria-label="설정" style="font-size:18px;padding:6px 10px;">⚙️</button>
+            <button id="user-avatar-btn" class="user-avatar-btn" style="background:${avatarColor}" title="${user ? escapeHTML(user.name) : ''}" aria-label="사용자 전환" onclick="App.openUserModal()">${avatarChar}</button>
+          </div>
         </header>
 
         <div id="page-container"></div>
 
-        <nav id="tab-nav">
-          <button class="tab-btn active" data-tab="dashboard">
-            <span class="tab-icon">🏠</span>
+        <nav id="tab-nav" role="navigation" aria-label="메인 메뉴">
+          <button class="tab-btn active" data-tab="dashboard" aria-label="홈 대시보드">
+            <span class="tab-icon" aria-hidden="true">🏠</span>
             <span>홈</span>
           </button>
-          <button class="tab-btn" data-tab="mounjaro">
-            <span class="tab-icon">💉</span>
+          <button class="tab-btn" data-tab="mounjaro" aria-label="투약 기록">
+            <span class="tab-icon" aria-hidden="true">💉</span>
             <span>투약</span>
           </button>
-          <button class="tab-btn" data-tab="body">
-            <span class="tab-icon">⚖️</span>
+          <button class="tab-btn" data-tab="body" aria-label="체중 인바디 기록">
+            <span class="tab-icon" aria-hidden="true">⚖️</span>
             <span>체중</span>
           </button>
-          <button class="tab-btn" data-tab="exercise">
-            <span class="tab-icon">🏃</span>
+          <button class="tab-btn" data-tab="exercise" aria-label="운동 기록">
+            <span class="tab-icon" aria-hidden="true">🏃</span>
             <span>운동</span>
           </button>
-          <button class="tab-btn" data-tab="diet">
-            <span class="tab-icon">🥗</span>
+          <button class="tab-btn" data-tab="diet" aria-label="식사 기록">
+            <span class="tab-icon" aria-hidden="true">🥗</span>
             <span>식사</span>
           </button>
         </nav>
@@ -86,10 +91,10 @@ const App = {
   },
 
   navigateTo(tab) {
-    if (!this.tabs.includes(tab)) return;
+    if (!this.pageModules[tab]) return;
     this.currentTab = tab;
 
-    // 탭 버튼 활성화
+    // 탭 버튼 활성화 (설정 페이지는 탭 하이라이트 없음)
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.tab === tab);
     });
@@ -101,6 +106,7 @@ const App = {
       body:      '체중 / 인바디',
       exercise:  '운동 기록',
       diet:      '식사 기록',
+      settings:  '설정',
     };
 
     document.getElementById('page-title').textContent = titles[tab];

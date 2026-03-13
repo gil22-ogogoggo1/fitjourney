@@ -13,6 +13,17 @@ const ExercisePage = {
       <!-- 운동 통계 요약 -->
       <div id="exercise-summary"></div>
 
+      <!-- 운동 빈도 차트 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📊 주간 운동 빈도</span>
+          <span class="text-dim" style="font-size:11px;">최근 8주</span>
+        </div>
+        <div class="chart-wrap" style="height:140px;">
+          <canvas id="ex-freq-chart"></canvas>
+        </div>
+      </div>
+
       <!-- 입력 폼 -->
       <div class="card">
         <div class="card-header">
@@ -104,6 +115,7 @@ const ExercisePage = {
 
     this.toggleFields();
     this.renderSummary();
+    this.renderFreqChart();
     this.renderList();
   },
 
@@ -229,6 +241,11 @@ const ExercisePage = {
 
     this.renderSummary();
     this.renderList();
+  },
+
+  renderFreqChart() {
+    const records = Storage.getAll('exercise');
+    Charts.renderExerciseFreqChart('ex-freq-chart', records);
   },
 
   renderSummary() {

@@ -50,6 +50,17 @@ const DietPage = {
         <button class="btn btn-primary" id="diet-save-btn">기록 저장</button>
       </div>
 
+      <!-- 칼로리 추이 차트 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📈 칼로리 추이</span>
+          <span class="text-dim" style="font-size:11px;">최근 14일</span>
+        </div>
+        <div class="chart-wrap" style="height:140px;">
+          <canvas id="cal-trend-chart"></canvas>
+        </div>
+      </div>
+
       <!-- 날짜별 식사 기록 -->
       <div class="card-header mt-16">
         <span class="card-title">📋 식사 기록</span>
@@ -59,6 +70,7 @@ const DietPage = {
 
     document.getElementById('diet-save-btn').addEventListener('click', () => this.save());
     this.renderTodaySummary();
+    this.renderCalChart();
     this.renderList();
   },
 
@@ -88,6 +100,11 @@ const DietPage = {
 
     this.renderTodaySummary();
     this.renderList();
+  },
+
+  renderCalChart() {
+    const records = Storage.getAll('diet');
+    Charts.renderCalorieTrendChart('cal-trend-chart', records);
   },
 
   renderTodaySummary() {
