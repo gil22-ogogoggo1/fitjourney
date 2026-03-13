@@ -12,9 +12,13 @@ global.KEYS = KEYS;
 
 const { Goals, AppSettings, Milestones } = require('../js/settings');
 
+let mockNow = 1710000000000;
 beforeEach(() => {
   localStorage.clear();
+  mockNow = 1710000000000;
+  jest.spyOn(Date, 'now').mockImplementation(() => mockNow++);
 });
+afterEach(() => jest.restoreAllMocks());
 
 // ────────────────────────────────────────
 // Goals

@@ -5,9 +5,14 @@
 
 const { Users } = require('../js/users');
 
+// Date.now()가 같은 밀리초에 호출되면 사용자 id 충돌 발생 — 모킹으로 고유 id 보장
+let mockNow = 1710000000000;
 beforeEach(() => {
   localStorage.clear();
+  mockNow = 1710000000000;
+  jest.spyOn(Date, 'now').mockImplementation(() => mockNow++);
 });
+afterEach(() => jest.restoreAllMocks());
 
 // ────────────────────────────────────────
 // Users.add

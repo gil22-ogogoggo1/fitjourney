@@ -10,7 +10,7 @@ module.exports = {
     'js/settings.js',
   ],
   coverageReporters: ['text', 'lcov', 'html'],
-  coverageThresholds: {
+  coverageThreshold: {
     global: {
       statements: 80,
       branches: 70,

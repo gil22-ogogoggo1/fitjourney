@@ -5,6 +5,15 @@
 
 const { Storage, escapeHTML, migrate, KEYS, SCHEMA_VERSION } = require('../js/storage');
 
+// Date.now()가 같은 밀리초에 호출되면 id 충돌 발생 — 테스트 간 고유 id를 보장하기 위해 모킹
+let mockNow = 1710000000000;
+beforeEach(() => {
+  localStorage.clear();
+  mockNow = 1710000000000;
+  jest.spyOn(Date, 'now').mockImplementation(() => mockNow++);
+});
+afterEach(() => jest.restoreAllMocks());
+
 // ────────────────────────────────────────
 // escapeHTML — XSS 방지 유틸
 // ────────────────────────────────────────
